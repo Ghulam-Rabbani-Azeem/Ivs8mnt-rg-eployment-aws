@@ -1,0 +1,87 @@
+
+pipeline airportsPipeline {
+
+	// 2. We describe the structure of the pipeline,
+	// usually at the top of the pipeline.
+	// by connecting blocks via pipes. 
+
+	// 3. Verbose syntax of a pipe
+	// connecting the block airportsExtractor
+	// with the block airportsTextFileInterpreter.
+	pipe {
+		from: airportsExtractor;
+		to: airportsTextFileInterpreter;
+	}
+
+	// 4. The output of the "from" block is hereby used 
+	// as input for the "to" block.
+
+	// 5. More convenient syntax of a pipe
+	airportsTextFileInterpreter -> airportsCSVInterpreter;
+
+	// 6. Pipes can be further chained, 
+	// leading to an overview of the pipeline.
+	airportsCSVInterpreter 
+	   	-> airportsTableInterpreter
+		-> airportsLoader;
+
+
+	// 7. Below the pipes, we usually define the blocks 
+	// that are connected by the pipes.
+
+	// 8. Blocks instantiate a blocktype by using the oftype keyword.
+	// The blocktype defines the available properties that the block
+	// can use to specify the intended behavior of the block 
+	block airportsExtractor oftype HttpExtractor {
+
+		// 9. Properties are assigned to concrete values.
+		// Here, we specify the URL where the file shall be downloaded from.
+		url: "https://opendata.rhein-kreis-neuss.de/api/v2/catalog/datasets/rhein-kreis-neuss-flughafen-weltweit/exports/csv";
+	}
+
+	// 10. The HttpExtractor requires no input and produces a binary file as output.
+	// This file has to be interpreted, e.g., as text file.
+	block airportsTextFileInterpreter oftype TextFileInterpreter { }
+
+	// 11. Next, we interpret the text file as sheet.
+	// A sheet only contains text cells and is useful for manipulating the shape of data before assigning more strict value types to cells.
+	block airportsCSVInterpreter oftype CSVInterpreter {
+		delimiter:";";
+	}
+
+
+	// 15. As a next step, we interpret the sheet as a table by adding structure.
+	// We define a valuetype per column that specifies the data type of the column.
+	// Rows that include values that are not valid according to the their valuetypes are dropped automatically. 
+	block airportsTableInterpreter oftype TableInterpreter {
+		header: true;
+		columns: [
+			"column_1" oftype integer,
+			"column_2" oftype text,
+			"column_3" oftype text,
+			"column_4" oftype text,
+			"column_5" oftype text,
+			"column_6" oftype text,
+			"column_7" oftype decimal,
+			"column_8" oftype decimal,
+			"column_9" oftype integer,
+			"column_10" oftype decimal,
+			"column_11" oftype text,
+			"column_12" oftype text,
+			"geo_punkt" oftype text
+		];
+	}
+
+	// 16. As a last step, we load the table into a sink,
+	// here into a sqlite file.
+	// The structural information of the table is used
+	// to generate the correct table.
+	block airportsLoader oftype SQLiteLoader {
+		table: "airports";
+		file: "./airports.sqlite";
+	}
+
+	// 17. Congratulations!
+	// You can now use the sink for your data analysis, app, 
+	// or whatever you want to do with the cleaned data.  
+}
